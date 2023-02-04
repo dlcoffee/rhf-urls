@@ -1,29 +1,76 @@
 'use client'
 
+// import { useRouter } from 'next/router'
+import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 
+type FormData = {
+  firstName: string
+  lastName: string
+}
+
+/**
+ *  const { onChange, onBlur, name, ref } = register('firstName');
+ *  // include type check against field path with the name you have supplied.
+ *
+ *  <input
+ *    onChange={onChange} // assign onChange event
+ *    onBlur={onBlur} // assign onBlur event
+ *    name={name} // assign name prop
+ *    ref={ref} // assign ref prop
+ *  />
+ *  // same as above
+ *  <input {...register('firstName')} />
+ **/
+
 export default function Home() {
+  const router = useRouter()
   const {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
-  } = useForm()
-  const onSubmit = (data) => console.log(data)
+  } = useForm<FormData>()
 
-  console.log(watch('example')) // watch input value by passing the name of it
+  const onSubmit = handleSubmit((data) => {
+    console.log(data)
+
+    const qs = [
+      ['firstName', data.firstName],
+      ['lastName', data.lastName],
+    ]
+      .filter((tuple) => Boolean(tuple[1]))
+      .map((tuple) => {
+        return `${tuple[0]}=${tuple[1]}`
+      })
+      .join('')
+
+    if (qs.length) {
+      router.push(`/?${qs}`)
+    } else {
+      router.push('/')
+    }
+    // router.push(`/?$firstName=${data.firstName}&`)
+  })
 
   return (
     <main>
-      <form onSubmit={handleSubmit(onSubmit)}>
-        {/* register your input into the hook by invoking the "register" function */}
-        <input defaultValue="test" {...register('example')} />
-
-        {/* include validation with required or other standard HTML validation rules */}
-        <input {...register('exampleRequired', { required: true })} />
-        {/* errors will return when field validation fails  */}
-        {errors.exampleRequired && <span>This field is required</span>}
-
+      <form onSubmit={onSubmit}>
+        <label>First Name</label>
+        <input {...register('firstName')} />
+        <label>Last Name</label>
+        <input {...register('lastName')} />
+        <button
+          type="button"
+          onClick={() => {
+            setValue('lastName', 'parker') // ✅
+            // setValue('firstName', true) // ❌: true is not string
+            // errors.bill // ❌: property bill does not exist
+          }}
+        >
+          SetValue
+        </button>
         <input type="submit" />
       </form>
     </main>
