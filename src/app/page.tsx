@@ -1,7 +1,7 @@
 'use client'
 
 // import { useRouter } from 'next/router'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 
 type FormData = {
@@ -23,15 +23,22 @@ type FormData = {
  *  <input {...register('firstName')} />
  **/
 
+// let renderCount = 0
+
 export default function Home() {
   const router = useRouter()
-  const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    formState: { errors },
-  } = useForm<FormData>()
+  const searchParams = useSearchParams()
+
+  const { register, handleSubmit } = useForm<FormData>({
+    defaultValues: {
+      firstName: searchParams.get('firstName') || '',
+      lastName: searchParams.get('lastName') || '',
+    },
+  })
+
+  console.count()
+
+  // renderCount++
 
   const onSubmit = handleSubmit((data) => {
     console.log(data)
@@ -44,7 +51,7 @@ export default function Home() {
       .map((tuple) => {
         return `${tuple[0]}=${tuple[1]}`
       })
-      .join('')
+      .join('&')
 
     if (qs.length) {
       router.push(`/?${qs}`)
@@ -56,12 +63,13 @@ export default function Home() {
 
   return (
     <main>
+      {/* <h1>render count {renderCount}</h1> */}
       <form onSubmit={onSubmit}>
         <label>First Name</label>
         <input {...register('firstName')} />
         <label>Last Name</label>
         <input {...register('lastName')} />
-        <button
+        {/* <button
           type="button"
           onClick={() => {
             setValue('lastName', 'parker') // ✅
@@ -70,7 +78,7 @@ export default function Home() {
           }}
         >
           SetValue
-        </button>
+        </button> */}
         <input type="submit" />
       </form>
     </main>
