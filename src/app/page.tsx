@@ -1,7 +1,8 @@
 'use client'
 
 // import { useRouter } from 'next/router'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useEffect } from 'react'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import {
   useQuery,
@@ -53,6 +54,7 @@ function Sprite({ url, alt }: Sprite) {
 function Content() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const pathname = usePathname()
 
   const queryString = searchParams.get('query') || ''
 
@@ -67,10 +69,11 @@ function Content() {
   )
 
   const {
+    formState: { errors, isDirty, isSubmitting, touchedFields, submitCount },
     register,
     handleSubmit,
-    formState: { errors, isDirty, isSubmitting, touchedFields, submitCount },
     watch,
+    reset,
   } = useForm<FormData>({
     defaultValues: {
       query: queryString,
@@ -81,7 +84,19 @@ function Content() {
 
   // console.count()
 
-  // renderCount++
+  useEffect(() => {
+    console.log('pathname OR searchparams changed', {
+      pathname,
+      searchParams,
+    })
+
+    // searchParams have changed from route, so sync up the form.
+    // this solves for browser navigation.
+    // Issue: `reset` clears form submission count.
+    reset({
+      query: searchParams.get('query') || '',
+    })
+  }, [pathname, searchParams, reset])
 
   const onSubmit = handleSubmit((data) => {
     console.log(data)
@@ -93,12 +108,8 @@ function Content() {
       })
       .join('&')
 
-    if (qs.length) {
-      router.push(`/?${qs}`)
-    } else {
-      router.push('/')
-    }
-    // router.push(`/?$firstName=${data.firstName}&`)
+    const href = qs.length > 0 ? `/?${qs}` : '/'
+    router.push(href)
   })
 
   return (
