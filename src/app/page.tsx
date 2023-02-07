@@ -62,16 +62,24 @@ function Content() {
     {
       retry: false,
       enabled: Boolean(queryString),
+      refetchOnWindowFocus: false,
     }
   )
 
-  const { register, handleSubmit } = useForm<FormData>({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isDirty, isSubmitting, touchedFields, submitCount },
+    watch,
+  } = useForm<FormData>({
     defaultValues: {
       query: queryString,
     },
   })
 
-  console.count()
+  const watchAllFields = watch()
+
+  // console.count()
 
   // renderCount++
 
@@ -100,6 +108,25 @@ function Content() {
         <input {...register('query')} />
         <input type="submit" value="Search" />
       </form>
+
+      <div>
+        Form State
+        <pre>
+          {JSON.stringify(
+            {
+              errors,
+              isDirty,
+              isSubmitting,
+              touchedFields,
+              submitCount,
+            },
+            null,
+            2
+          )}
+        </pre>
+        Watched Fields
+        <pre>{JSON.stringify(watchAllFields, null, 2)}</pre>
+      </div>
 
       {isFetching ? (
         <h2>Fetching:</h2>
