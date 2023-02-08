@@ -58,7 +58,7 @@ function Content() {
 
   const queryString = searchParams.get('query') || ''
 
-  const { isFetching, isError, data, error } = useQuery(
+  const { isFetching, data } = useQuery(
     ['search', queryString],
     () => search(queryString),
     {
@@ -74,6 +74,7 @@ function Content() {
     handleSubmit,
     watch,
     reset,
+    setValue,
   } = useForm<FormData>({
     defaultValues: {
       query: queryString,
@@ -93,22 +94,20 @@ function Content() {
     // searchParams have changed from route, so sync up the form.
     // this solves for browser navigation.
     // Issue: `reset` clears form submission count.
-    reset({
-      query: searchParams.get('query') || '',
-    })
-  }, [pathname, searchParams, reset])
+    // reset({
+    //   query: searchParams.get('query') || '',
+    // })
+
+    // OR
+
+    // actually, do i really want to keep track of things like
+    // "submit count" when navigating forward/backwards
+    // in the browser?
+    setValue('query', searchParams.get('query') || '')
+  }, [pathname, searchParams, reset, setValue])
 
   const onSubmit = handleSubmit((data) => {
-    console.log(data)
-
-    const qs = [['query', data.query]]
-      .filter((tuple) => Boolean(tuple[1]))
-      .map((tuple) => {
-        return `${tuple[0]}=${tuple[1]}`
-      })
-      .join('&')
-
-    const href = qs.length > 0 ? `/?${qs}` : '/'
+    const href = data.query.length > 0 ? `/?query=${data.query}` : '/'
     router.push(href)
   })
 
