@@ -15,7 +15,8 @@ import {
 type FormData = {
   query: string
   variant: 'default' | 'shiny'
-  username: string
+  isAuthenticated: boolean
+  token: string
 }
 
 /**
@@ -72,7 +73,8 @@ function Content() {
     defaultValues: {
       query: queryString,
       variant: 'default',
-      username: '',
+      isAuthenticated: false,
+      token: 'FAKE_API_TOKEN',
     },
   })
 
@@ -83,7 +85,7 @@ function Content() {
     () => search(queryString),
     {
       retry: false,
-      enabled: Boolean(watchAllFields.username),
+      enabled: Boolean(watchAllFields.isAuthenticated),
       refetchOnWindowFocus: false,
     }
   )
@@ -150,13 +152,14 @@ function Content() {
       >
         <form onSubmit={onSubmit}>
           <div>
-            <label htmlFor="username">Username: </label>
-
+            <label htmlFor="is-authenticated">Is Authenticated?: </label>
             <input
-              id="username"
-              {...register('username', { required: true })}
+              type="checkbox"
+              id="is-authenticated"
+              {...register('isAuthenticated', {})}
             />
-            {errors.username && <span>This field is required</span>}
+
+            <input {...register('token', { required: true, disabled: true })} />
           </div>
 
           <div>
@@ -173,11 +176,7 @@ function Content() {
 
             <input placeholder="id or name" id="query" {...register('query')} />
 
-            <input
-              type="submit"
-              value="Search"
-              disabled={!watchAllFields.username}
-            />
+            <input type="submit" value="Search" />
           </div>
         </form>
 
