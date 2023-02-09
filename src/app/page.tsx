@@ -14,6 +14,8 @@ import {
 
 type FormData = {
   query: string
+  variant: 'default' | 'shiny'
+  username: string
 }
 
 /**
@@ -58,16 +60,6 @@ function Content() {
 
   const queryString = searchParams.get('query') || ''
 
-  const { isFetching, data } = useQuery(
-    ['search', queryString],
-    () => search(queryString),
-    {
-      retry: false,
-      enabled: Boolean(queryString),
-      refetchOnWindowFocus: false,
-    }
-  )
-
   const {
     formState: { errors, isDirty, isSubmitting, touchedFields, submitCount },
     register,
@@ -78,10 +70,22 @@ function Content() {
   } = useForm<FormData>({
     defaultValues: {
       query: queryString,
+      variant: 'default',
+      username: '',
     },
   })
 
   const watchAllFields = watch()
+
+  const { isFetching, data } = useQuery(
+    ['search', queryString],
+    () => search(queryString),
+    {
+      retry: false,
+      enabled: Boolean(watchAllFields.username),
+      refetchOnWindowFocus: false,
+    }
+  )
 
   // console.count()
 
@@ -104,22 +108,106 @@ function Content() {
     // "submit count" when navigating forward/backwards
     // in the browser?
     setValue('query', searchParams.get('query') || '')
+    const variantParam = searchParams.get('variant')
+    switch (variantParam) {
+      case 'shiny': {
+        setValue('variant', 'shiny')
+      }
+      case 'default':
+      default: {
+        setValue('variant', 'default')
+      }
+    }
   }, [pathname, searchParams, reset, setValue])
 
   const onSubmit = handleSubmit((data) => {
-    const href = data.query.length > 0 ? `/?query=${data.query}` : '/'
+    const qs = [
+      ['query', data.query],
+      ['variant', data.variant],
+    ]
+      .filter((tuple) => Boolean(tuple[1]))
+      .map((tuple) => {
+        return `${tuple[0]}=${tuple[1]}`
+      })
+      .join('&')
+
+    const href = qs.length > 0 ? `/?${qs}` : '/'
     router.push(href)
   })
 
   return (
-    <div>
-      <form onSubmit={onSubmit}>
-        <label>Query</label>
-        <input {...register('query')} />
-        <input type="submit" value="Search" />
-      </form>
+    <div
+      style={{
+        width: '100%',
+        display: 'flex',
+      }}
+    >
+      <div
+        style={{
+          flex: 1,
+        }}
+      >
+        <form onSubmit={onSubmit}>
+          <div>
+            <label htmlFor="username">Username: </label>
 
-      <div>
+            <input id="username" {...register('username')} />
+          </div>
+
+          <div>
+            <label htmlFor="variant-select">Sprite Variant: </label>
+
+            <select id="variant-select" {...register('variant')}>
+              <option value="default">Default</option>
+              <option value="shiny">Shiny</option>
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="query">Query: </label>
+
+            <input placeholder="id or name" id="query" {...register('query')} />
+          </div>
+
+          <div>
+            <input
+              type="submit"
+              value="Search"
+              disabled={!watchAllFields.username}
+            />
+          </div>
+        </form>
+
+        {isFetching ? (
+          <h2>Fetching:</h2>
+        ) : (
+          <div>
+            <h2>Result:</h2>
+            {data ? (
+              <Sprite
+                url={
+                  data.sprites[
+                    watchAllFields.variant === 'default'
+                      ? 'front_default'
+                      : 'front_shiny'
+                  ]
+                }
+                alt={queryString}
+              />
+            ) : (
+              'Not found'
+            )}
+          </div>
+        )}
+      </div>
+
+      <div
+        style={{
+          padding: 8,
+          border: '1px solid black',
+          flex: 1,
+        }}
+      >
         Form State
         <pre>
           {JSON.stringify(
@@ -137,19 +225,6 @@ function Content() {
         Watched Fields
         <pre>{JSON.stringify(watchAllFields, null, 2)}</pre>
       </div>
-
-      {isFetching ? (
-        <h2>Fetching:</h2>
-      ) : (
-        <div>
-          <h2>Result:</h2>
-          {data ? (
-            <Sprite url={data.sprites.front_default} alt={queryString} />
-          ) : (
-            'Not found'
-          )}
-        </div>
-      )}
     </div>
   )
 }
