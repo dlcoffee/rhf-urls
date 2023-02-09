@@ -68,6 +68,7 @@ function Content() {
     reset,
     setValue,
   } = useForm<FormData>({
+    mode: 'all',
     defaultValues: {
       query: queryString,
       variant: 'default',
@@ -151,7 +152,11 @@ function Content() {
           <div>
             <label htmlFor="username">Username: </label>
 
-            <input id="username" {...register('username')} />
+            <input
+              id="username"
+              {...register('username', { required: true })}
+            />
+            {errors.username && <span>This field is required</span>}
           </div>
 
           <div>
@@ -167,9 +172,7 @@ function Content() {
             <label htmlFor="query">Query: </label>
 
             <input placeholder="id or name" id="query" {...register('query')} />
-          </div>
 
-          <div>
             <input
               type="submit"
               value="Search"
@@ -212,7 +215,7 @@ function Content() {
         <pre>
           {JSON.stringify(
             {
-              errors,
+              // errors,
               isDirty,
               isSubmitting,
               touchedFields,
