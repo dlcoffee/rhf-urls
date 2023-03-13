@@ -59,7 +59,11 @@ function Content() {
   const searchParams = useSearchParams()
   const pathname = usePathname()
 
-  const queryString = searchParams.get('query') || ''
+  // NOTE: If an application includes the /pages directory, useSearchParams
+  // will return ReadonlyURLSearchParams | null. The null value is for
+  // compatibility during migration since search params cannot be known during
+  // pre-rendering of a page that doesn't use getServerSideProps
+  const queryString = searchParams ? searchParams.get('query') || '' : ''
 
   const {
     formState: { errors, isDirty, isSubmitting, touchedFields, submitCount },
