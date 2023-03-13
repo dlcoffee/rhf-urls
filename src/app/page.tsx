@@ -114,8 +114,8 @@ function Content() {
     // actually, do i really want to keep track of things like
     // "submit count" when navigating forward/backwards
     // in the browser?
-    setValue('query', searchParams.get('query') || '')
-    const variantParam = searchParams.get('variant')
+    setValue('query', searchParams ? searchParams.get('query') || '' : '')
+    const variantParam = searchParams ? searchParams.get('variant') : ''
     switch (variantParam) {
       case 'shiny': {
         setValue('variant', 'shiny')
