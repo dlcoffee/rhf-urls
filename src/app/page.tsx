@@ -1,22 +1,15 @@
 'use client'
 
-// import { useRouter } from 'next/router'
 import { useEffect } from 'react'
+import Image from 'next/image'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
+import { useSession, signIn, signOut } from 'next-auth/react'
 import { useForm } from 'react-hook-form'
-import {
-  useQuery,
-  useMutation,
-  useQueryClient,
-  QueryClient,
-  QueryClientProvider,
-} from 'react-query'
+import { useQuery, QueryClient, QueryClientProvider } from 'react-query'
 
 type FormData = {
   query: string
   variant: 'default' | 'shiny'
-  isAuthenticated: boolean
-  token: string
 }
 
 /**
@@ -32,8 +25,6 @@ type FormData = {
  *  // same as above
  *  <input {...register('firstName')} />
  **/
-
-// let renderCount = 0
 
 async function search(idOrName: string) {
   try {
@@ -51,10 +42,11 @@ interface Sprite {
 }
 
 function Sprite({ url, alt }: Sprite) {
-  return <img src={url} alt={alt} />
+  return <Image src={url} alt={alt} width={96} height={96} />
 }
 
 function Content() {
+  const { data: session } = useSession()
   const router = useRouter()
   const searchParams = useSearchParams()
   const pathname = usePathname()
@@ -64,6 +56,8 @@ function Content() {
   // compatibility during migration since search params cannot be known during
   // pre-rendering of a page that doesn't use getServerSideProps
   const queryString = searchParams ? searchParams.get('query') || '' : ''
+  const variantString = searchParams ? searchParams.get('variant') || '' : ''
+  console.log('render:', variantString)
 
   const {
     formState: { errors, isDirty, isSubmitting, touchedFields, submitCount },
@@ -76,25 +70,23 @@ function Content() {
     mode: 'all',
     defaultValues: {
       query: queryString,
-      variant: 'default',
-      isAuthenticated: false,
-      token: 'FAKE_API_TOKEN',
+      variant: ['shiny', 'default'].includes(variantString)
+        ? (variantString as 'shiny' | 'default') // this is dumb i know.
+        : 'default',
     },
   })
 
   const watchAllFields = watch()
 
-  const { isFetching, data } = useQuery(
+  const { isLoading, isFetching, data } = useQuery(
     ['search', queryString],
     () => search(queryString),
     {
       retry: false,
-      enabled: Boolean(watchAllFields.isAuthenticated),
+      enabled: Boolean(queryString),
       refetchOnWindowFocus: false,
     }
   )
-
-  // console.count()
 
   useEffect(() => {
     console.log('pathname OR searchparams changed', {
@@ -116,8 +108,10 @@ function Content() {
     // in the browser?
     setValue('query', searchParams ? searchParams.get('query') || '' : '')
     const variantParam = searchParams ? searchParams.get('variant') : ''
+    console.log('ok wtf', variantParam)
     switch (variantParam) {
       case 'shiny': {
+        console.log('set value to shiny')
         setValue('variant', 'shiny')
       }
       case 'default':
@@ -154,56 +148,76 @@ function Content() {
           flex: 1,
         }}
       >
-        <form onSubmit={onSubmit}>
-          <div>
-            <label htmlFor="is-authenticated">Is Authenticated?: </label>
-            <input
-              type="checkbox"
-              id="is-authenticated"
-              {...register('isAuthenticated', {})}
-            />
+        {session && session.user ? (
+          <>
+            <div>
+              <span style={{ paddingRight: 5 }}>
+                Signed in as {session.user.email}
+              </span>
+              <button onClick={() => signOut({ callbackUrl: '/' })}>
+                Sign out
+              </button>
+            </div>
 
-            <input {...register('token', { required: true, disabled: true })} />
-          </div>
+            <form onSubmit={onSubmit}>
+              <div>
+                <label htmlFor="variant-select">Sprite Variant: </label>
 
-          <div>
-            <label htmlFor="variant-select">Sprite Variant: </label>
+                <select
+                  id="variant-select"
+                  {...register('variant', {
+                    onChange: (e) => {
+                      setValue('variant', e.target.value)
+                      onSubmit()
+                    },
+                  })}
+                >
+                  <option value="default">Default</option>
+                  <option value="shiny">Shiny</option>
+                </select>
+              </div>
 
-            <select id="variant-select" {...register('variant')}>
-              <option value="default">Default</option>
-              <option value="shiny">Shiny</option>
-            </select>
-          </div>
+              <div>
+                <label htmlFor="query">Query: </label>
 
-          <div>
-            <label htmlFor="query">Query: </label>
+                <input
+                  placeholder="id or name"
+                  id="query"
+                  {...register('query')}
+                />
 
-            <input placeholder="id or name" id="query" {...register('query')} />
-
-            <input type="submit" value="Search" />
-          </div>
-        </form>
-
-        {isFetching ? (
-          <h2>Fetching:</h2>
-        ) : (
-          <div>
-            <h2>Result:</h2>
-            {data ? (
-              <Sprite
-                url={
-                  data.sprites[
-                    watchAllFields.variant === 'default'
-                      ? 'front_default'
-                      : 'front_shiny'
-                  ]
-                }
-                alt={queryString}
-              />
+                <input type="submit" value="Search" />
+              </div>
+            </form>
+            {isLoading ? (
+              <h2>Loading:</h2>
+            ) : isFetching ? (
+              <h2>Fetching:</h2>
             ) : (
-              'Not found'
+              <div>
+                <h2>Result:</h2>
+                {data ? (
+                  <Sprite
+                    url={
+                      data.sprites[
+                        watchAllFields.variant === 'default'
+                          ? 'front_default'
+                          : 'front_shiny'
+                      ]
+                    }
+                    alt={queryString}
+                  />
+                ) : (
+                  'Not found'
+                )}
+              </div>
             )}
-          </div>
+          </>
+        ) : (
+          <>
+            Not signed in <br />
+            <button onClick={() => signIn()}>Sign in</button>
+          </>
         )}
       </div>
 
